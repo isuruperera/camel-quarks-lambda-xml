@@ -16,16 +16,13 @@
  */
 package org.isurutee.aws.lambda.convert;
 
-import javax.enterprise.context.ApplicationScoped;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import org.apache.camel.builder.RouteBuilder;
+import org.isurutee.aws.lambda.convert.util.JSONObjectConverter;
 import org.json.JSONObject;
 import org.json.XML;
 import org.json.XMLParserConfiguration;
 
+import javax.enterprise.context.ApplicationScoped;
 import java.util.Map;
 
 @ApplicationScoped
@@ -35,41 +32,21 @@ public class CamelRoute extends RouteBuilder {
     public void configure() {
         from("direct:convertXMLJson").routeId("ConvertXMLJson")
                 .log("Camel Route Received Payload ==> ${body}")
+                .setProperty("LOWER_CASE", simple("${body[LowerCase]}"))
                 .setBody(exchange -> exchange.getIn().getBody(Map.class).get("XML"))
                 .log("Camel Route Pre Processed Payload ==> ${body}")
                 .process(exchange -> {
                     String xml = exchange.getIn().getBody(String.class);
+                    boolean convertLowerCase = exchange.getProperty("LOWER_CASE", Boolean.class);
                     JSONObject jsonObject = XML.toJSONObject(xml, XMLParserConfiguration.ORIGINAL);
-
-                    ObjectMapper obj = new ObjectMapper().setPropertyNamingStrategy(PropertyNamingStrategies.LOWER_CASE);
-                    obj.convertValue(jsonObject.toMap(), Map.class);
-
+                    if (convertLowerCase) {
+                        jsonObject = JSONObjectConverter.lowerCaseJSONKeys(jsonObject);
+                    }
                     exchange.getIn().setBody(jsonObject.toString(4));
                 })
                 .log("Camel Route Processed Payload ==> ${body}")
                 .end();
     }
 
-//    public JsonArray jsonKeysUpper(JsonArray arr) {
-//        JsonArray aux = new JsonArray();
-//        for(int i = 0; i < arr.size(); ++i)
-//            aux.add(jsonKeysUpper(arr.get(i).getAsJsonObject()));
-//        return aux;
-//    }
-//
-//    public JSONObject jsonKeysUpper(JSONObject obj) {
-//        JSONObject aux = new JSONObject();
-//        if(obj == null) return null;
-//        // Iterate all properties
-//        if(obj.length() == 1) return obj;
-//        for(String o : obj.keySet()) {
-//            if(obj.get(o).isJsonPrimitive())
-//                aux.addProperty(o.toUpperCase(), obj.get(o).getAsString());
-//            else if(obj.get(o).isJsonArray())
-//                aux.add(o.toUpperCase(), jsonKeysUpper(obj.get(o).getAsJsonArray()));
-//            else
-//                aux.add(o.toUpperCase(), jsonKeysUpper(obj.get(o).getAsJsonObject()));
-//        }
-//        return aux;
-//    }
+
 }

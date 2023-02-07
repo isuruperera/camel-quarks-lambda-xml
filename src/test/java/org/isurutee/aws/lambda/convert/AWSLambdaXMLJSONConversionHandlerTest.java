@@ -27,10 +27,32 @@ import static org.hamcrest.Matchers.*;
 class AWSLambdaXMLJSONConversionHandlerTest {
 
     @Test
-    void invokeLambdaForXMLShouldReturnJson() {
+    void invokeLambdaForXMLShouldReturnJson_WithLowerCaseKeys() {
         String in = """
                 {
-                    "XML": "<Test><ValueStr>Hello World!</ValueStr><ValueNum>150</ValueNum></Test>"
+                    "XML": "<Test><ValueStr>Hello World!</ValueStr><ValueNum>150</ValueNum></Test>",
+                    "LowerCase": true
+                }
+                """;
+
+        RestAssured.given()
+                .body(in)
+                .contentType(ContentType.JSON)
+                .when()
+                .post()
+                .then()
+                .statusCode(200)
+                .body(containsString("\\\"valuestr\\\": \\\"Hello World!\\\""))
+                .and()
+                .body(containsString("\\\"valuenum\\\": 150"));
+    }
+
+    @Test
+    void invokeLambdaForXMLShouldReturnJson_WithDefaultKeys() {
+        String in = """
+                {
+                    "XML": "<Test><ValueStr>Hello World!</ValueStr><ValueNum>150</ValueNum></Test>",
+                    "LowerCase": false
                 }
                 """;
 
